@@ -57,6 +57,12 @@ func createCommitTypeOption(name string, desc string, ty CommitType, theme lipgl
 
 func NewCommitMessage(descriptionStyle lipgloss.Style) (*CommitMessage, error) {
 	commitMsg := &CommitMessage{}
+
+	// TODOs:
+	// * use file picker to add files to commit
+	// * create full pipeline for Git functionality
+	// * integrate local OLlama LLM to automatically generate the
+	//   commit messages based on textual Git diff.
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[CommitType]().
