@@ -55,8 +55,9 @@ func createCommitTypeOption(name string, desc string, ty CommitType, theme lipgl
 	return huh.NewOption(fmt.Sprintf("%8s: %s", name, theme.Render(desc)), ty)
 }
 
-func NewCommitMessage(descriptionStyle lipgloss.Style) (*CommitMessage, error) {
+func NewCommitMessage(theme *huh.Theme) (*CommitMessage, error) {
 	commitMsg := &CommitMessage{}
+	descriptionStyle := theme.Help.FullDesc
 
 	// TODOs:
 	// * use file picker to add files to commit
@@ -105,7 +106,7 @@ func NewCommitMessage(descriptionStyle lipgloss.Style) (*CommitMessage, error) {
 				Title("Footer (optional)?").
 				Value(&commitMsg.footer),
 		),
-	)
+	).WithTheme(theme)
 
 	err := form.Run()
 	return commitMsg, err
