@@ -1,14 +1,14 @@
-module github.com/Hacker007/githelper
+module github.com/Hacker-007/githelper
 
 go 1.23.4
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/huh v0.6.0
 	github.com/charmbracelet/lipgloss v1.0.0
 )
 
 require (
-	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
 	github.com/charmbracelet/bubbles v0.20.0 // indirect
