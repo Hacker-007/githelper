@@ -69,7 +69,6 @@ func NewCommitMessage(theme *huh.Theme) (*CommitMessage, error) {
 	descriptionStyle := theme.Help.FullDesc
 
 	// TODOs:
-	// * use file picker to add files to commit
 	// * create full pipeline for Git functionality
 	// * integrate local OLlama LLM to automatically generate the
 	//   commit messages based on textual Git diff.
