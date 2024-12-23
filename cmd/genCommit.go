@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var UseLLM bool
+
 var genCommitCmd = &cobra.Command{
 	Use:     "gen-commit",
 	Short:   "Generate a Conventional Commit message",
@@ -16,7 +18,7 @@ var genCommitCmd = &cobra.Command{
 	Aliases: []string{"gc"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		theme := huh.ThemeCatppuccin()
-		commitMsg, err := commit.NewCommitMessage(theme)
+		commitMsg, err := commit.NewCommitMessage(theme, UseLLM)
 		if err != nil {
 			return err
 		}
@@ -33,4 +35,5 @@ var genCommitCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(genCommitCmd)
+	genCommitCmd.Flags().BoolVarP(&UseLLM, "use-llm", "l", false, "Use local LLM to auto-fill parts of the commit details")
 }

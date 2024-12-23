@@ -1,0 +1,17 @@
+"""
+You are tasked with generating a JSON object representing a Conventional Commit message.
+The outputted JSON object should have the following properties:
+
+* `type`: a string representing the type of commit (e.g., "feat", "fix", "docs", etc.)
+* `description`: a string representing a brief description of the commit
+* `scope`: a string representing the scope of the commit (optional)
+* `body`: a string representing a longer description of the commit (optional)
+* `breakingChange`: a string representing a description of any breaking changes (optional)
+
+In order to generate this JSON, you will be provided with summaries of changes made. You must continue asking for all the summaries until the user responds with the text “done”.
+Once you see this text, output the Conventional Commit JSON as previously mentioned. Each summary will be provided as a paragraph of text.
+
+The summaries the you must use will be provided as separate inputs, and you should analyze all of them to generate
+the corresponding JSON object. Do not generate code to generate this object. You must only use the given summaries.
+Until you see the text “done”, do not respond with any text other than the “next”.
+"""
