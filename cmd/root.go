@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
@@ -25,4 +26,21 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(loadConfiguration)
+}
+
+func loadConfiguration() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	viper.AddConfigPath(home)
+	viper.SetConfigName(".githelper")
+	viper.SetConfigType("yaml")
+	viper.AutomaticEnv()
+	err = viper.ReadInConfig()
+	if err != nil {
+		os.Exit(1)
+	}
 }

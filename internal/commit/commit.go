@@ -25,11 +25,11 @@ const (
 )
 
 type CommitMessage struct {
-	ty          CommitType
-	description string
-	scope       string
-	body        string
-	footer      string
+	ty             CommitType
+	description    string
+	scope          string
+	body           string
+	breakingChange string
 }
 
 func (commit *CommitMessage) String() string {
@@ -39,13 +39,22 @@ func (commit *CommitMessage) String() string {
 		sb.WriteString(fmt.Sprintf("(%s)", commit.scope))
 	}
 
+	if commit.breakingChange != "" {
+		sb.WriteString("!")
+	}
+
 	sb.WriteString(fmt.Sprintf(": %s", commit.description))
 	if commit.body != "" {
 		sb.WriteString(fmt.Sprintf("\n\n%s", commit.body))
 	}
 
-	if commit.footer != "" {
-		sb.WriteString(fmt.Sprintf("\n\n%s", commit.footer))
+	hasFooter := commit.breakingChange != ""
+	if hasFooter {
+		sb.WriteString("\n\n")
+	}
+
+	if commit.breakingChange != "" {
+		sb.WriteString(fmt.Sprintf("BREAKING CHANGES: %s", commit.breakingChange))
 	}
 
 	return sb.String()
@@ -60,7 +69,6 @@ func NewCommitMessage(theme *huh.Theme) (*CommitMessage, error) {
 	descriptionStyle := theme.Help.FullDesc
 
 	// TODOs:
-	// * use file picker to add files to commit
 	// * create full pipeline for Git functionality
 	// * integrate local OLlama LLM to automatically generate the
 	//   commit messages based on textual Git diff.
@@ -102,9 +110,11 @@ func NewCommitMessage(theme *huh.Theme) (*CommitMessage, error) {
 			huh.NewText().
 				Title("Body (optional)?").
 				Value(&commitMsg.body),
-			huh.NewText().
-				Title("Footer (optional)?").
-				Value(&commitMsg.footer),
+			huh.NewInput().
+				Title("Breaking Change (optional)?").
+				Prompt(" ").
+				Inline(true).
+				Value(&commitMsg.breakingChange),
 		),
 	).WithTheme(theme)
 
