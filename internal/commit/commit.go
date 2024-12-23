@@ -1,8 +1,11 @@
 package commit
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+
+	_ "embed"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -10,7 +13,14 @@ import (
 
 type CommitType int
 
-var commitTypes = [...]string{"build", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"}
+//go:embed prompts/git_diff_summary.txt
+var gitDiffSummaryPrompt string
+
+//go:embed prompts/git_commit_generation.txt
+var gitCommitGenerationPrompt string
+
+var commitTypes = []string{"build", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"}
+var commitMapping = map[string]CommitType{"build": Build, "ci": CI, "docs": Docs, "feat": Feat, "fix": Fix, "perf": Perf, "refactor": Refactor, "style": Style, "test": Test}
 
 const (
 	Build CommitType = iota
@@ -30,6 +40,34 @@ type CommitMessage struct {
 	scope          string
 	body           string
 	breakingChange string
+}
+
+func (commit *CommitMessage) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" || string(data) == "" {
+		return nil
+	}
+
+	var realCommit struct {
+		Type           string
+		Description    string
+		Scope          string
+		Body           string
+		BreakingChange string
+	}
+
+	if err := json.Unmarshal(data, &realCommit); err != nil {
+		return err
+	}
+
+	*commit = CommitMessage{
+		ty:             commitMapping[realCommit.Type],
+		description:    realCommit.Description,
+		scope:          realCommit.Scope,
+		body:           realCommit.Body,
+		breakingChange: realCommit.BreakingChange,
+	}
+
+	return nil
 }
 
 func (commit *CommitMessage) String() string {
@@ -60,18 +98,97 @@ func (commit *CommitMessage) String() string {
 	return sb.String()
 }
 
+func getDiffSummaries() ([]string, error) {
+	changedFiles, err := getChangedFiles()
+	if err != nil {
+		return []string{}, err
+	}
+
+	if len(changedFiles) == 0 {
+		return []string{}, nil
+	}
+
+	llmClient := &LLMClient{}
+	summaries := []string{}
+	for _, file := range changedFiles {
+		diff, err := getDiff(file)
+		if err != nil {
+			return []string{}, err
+		}
+
+		prompt := fmt.Sprintf("\"\"\"\n%s\n\n%s\n\"\"\"", gitDiffSummaryPrompt, diff)
+		summary, err := llmClient.SendStandaloneMessage(prompt)
+		if err != nil {
+			return []string{}, err
+		}
+
+		summaries = append(summaries, summary)
+	}
+
+	return summaries, nil
+}
+
+func getCommitDetails(summaries []string) (*CommitMessage, error) {
+	llmClient := &LLMClient{}
+	_, err := llmClient.SendChatMessage(LLMMessage{
+		Role:    "system",
+		Content: gitCommitGenerationPrompt,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, summary := range summaries {
+		_, err := llmClient.SendChatMessage(LLMMessage{
+			Role:    "user",
+			Content: fmt.Sprintf("\"\"\"\nSummary %d:\n%s\n\"\"\"", idx+1, summary),
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	commit, err := llmClient.SendChatMessage(LLMMessage{
+		Role:    "user",
+		Content: "done",
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(commit.Content)
+	var commitMessage CommitMessage
+	json.NewDecoder(strings.NewReader(commit.Content)).Decode(&commitMessage)
+	return &commitMessage, nil
+}
+
 func createCommitTypeOption(name string, desc string, ty CommitType, theme lipgloss.Style) huh.Option[CommitType] {
 	return huh.NewOption(fmt.Sprintf("%8s: %s", name, theme.Render(desc)), ty)
 }
 
-func NewCommitMessage(theme *huh.Theme) (*CommitMessage, error) {
+func NewCommitMessage(theme *huh.Theme, useLLM bool) (*CommitMessage, error) {
 	commitMsg := &CommitMessage{}
+	if useLLM {
+		summaries, err := getDiffSummaries()
+		if err != nil {
+			return nil, err
+		}
+
+		if len(summaries) != 0 {
+			commitMsg, err = getCommitDetails(summaries)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	descriptionStyle := theme.Help.FullDesc
 
 	// TODOs:
 	// * create full pipeline for Git functionality
-	// * integrate local OLlama LLM to automatically generate the
-	//   commit messages based on textual Git diff.
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[CommitType]().
